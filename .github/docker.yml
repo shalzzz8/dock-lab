@@ -1,30 +1,50 @@
-name:dock
+
+name: dock
+
 on:
   push:
-    branches:["main"]
+    branches: ["main"]
   pull_request:
-    branches:["main"]
+    branches: ["main"]
 
 jobs:
-  build-test-patch:
-     runs_on:ubuntu
-     steps:
-       -uses:actions/checkout@v4
-       -uses:actions/setup-python@v5
-          with:
-            python-version:'3.11'
-       -run:pip install -r requirements.txt
-       -run:pytest -q
+  build-test-push:
+    runs-on: ubuntu-latest
 
-       -uses:dock/setup-qemu-action@v3
-       -uses:dock/setup-buildx-action@v3
-       -uses:dock/login-action@v3
-          with:
-            username:${{secrets.docker_username}}
-            password:${{secrets.docker_token}}
-        -uses:build-push-action@v6
-           with:
-             context: .
-             platforms: linux/amd64
-             push:true
-             tags:shalinignanaolivu/dock:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest -q
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: shalinignanaolivu/dock:latest
