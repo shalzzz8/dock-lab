@@ -26,7 +26,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run tests
-        run: pytest -q
+        run:  python -m pytest -qpytest -q
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
